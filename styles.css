@@ -1,0 +1,527 @@
+/* ---- リセット・ベース ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  background: #f5f6fa;
+  color: #333;
+  height: 100vh;
+  overflow: hidden;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  transition: opacity 0.15s;
+}
+button:hover { opacity: 0.85; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+select, input[type="text"], input[type="time"] {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 13px;
+  width: 100%;
+  background: #fff;
+}
+select:focus, input:focus {
+  outline: 2px solid #4a90d9;
+  outline-offset: -1px;
+}
+
+.hidden { display: none !important; }
+
+/* ---- ボタン種別 ---- */
+.btn-primary   { background: #4a90d9; color: #fff; }
+.btn-secondary { background: #e0e0e0; color: #333; }
+.btn-danger    { background: #e05555; color: #fff; }
+.btn-nav       { background: #fff; border: 1px solid #ccc; color: #444; padding: 5px 10px; }
+.btn-lg        { padding: 10px 24px; font-size: 15px; }
+
+/* ---- 起動オーバーレイ ---- */
+#startup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.startup-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 36px 40px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.startup-card h1 {
+  font-size: 22px;
+  margin-bottom: 8px;
+  color: #222;
+}
+
+.startup-card > p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.startup-instructions {
+  background: #fff8e1;
+  border: 1px solid #f0c040;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.startup-instructions p {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #7a5c00;
+}
+
+.startup-instructions ul {
+  padding-left: 18px;
+  color: #555;
+}
+
+.startup-instructions li {
+  margin-bottom: 4px;
+}
+
+.startup-instructions code {
+  background: #f0f0f0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.startup-status {
+  margin-top: 12px;
+  color: #777;
+  font-size: 13px;
+  min-height: 18px;
+}
+
+/* ---- メインアプリ ---- */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ---- タブナビゲーション ---- */
+.tab-nav {
+  display: flex;
+  background: #2c3e50;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  background: transparent;
+  color: #aab;
+  border-radius: 0;
+  padding: 12px 18px;
+  font-size: 14px;
+  border-bottom: 3px solid transparent;
+  margin-right: 4px;
+}
+
+.tab-btn:hover { color: #fff; opacity: 1; }
+.tab-btn.active {
+  color: #fff;
+  border-bottom-color: #4a90d9;
+}
+
+/* ---- パネル共通 ---- */
+.tab-panel {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- 画面1: プリセット管理 ---- */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.panel-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+#preset-list {
+  list-style: none;
+  padding: 12px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.preset-item.disabled {
+  opacity: 0.55;
+  background: #f8f8f8;
+}
+
+.preset-item.disabled .preset-name {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.preset-name {
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-disabled {
+  font-size: 11px;
+  background: #e0e0e0;
+  color: #777;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: normal;
+}
+
+.preset-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.preset-actions button {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #f0f0f0;
+  color: #333;
+}
+
+.empty-message {
+  padding: 20px;
+  color: #999;
+  text-align: center;
+}
+
+/* ---- 画面2: カレンダー ---- */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.week-label {
+  font-weight: 600;
+  font-size: 14px;
+  min-width: 200px;
+  text-align: center;
+}
+
+#calendar-wrapper {
+  display: flex;
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+}
+
+#time-axis {
+  width: 52px;
+  flex-shrink: 0;
+  border-right: 1px solid #e0e0e0;
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 2;
+}
+
+.time-axis-spacer {
+  height: 30px; /* .day-header の高さに合わせる */
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.time-label {
+  height: 60px; /* 4スロット × 15px */
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-right: 6px;
+  padding-top: 2px;
+  font-size: 11px;
+  color: #888;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+#calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex: 1;
+  min-width: 0;
+}
+
+.calendar-day-column {
+  border-right: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-day-column:last-child {
+  border-right: none;
+}
+
+.day-header {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  background: #fafafa;
+  border-bottom: 2px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.day-header.today {
+  color: #4a90d9;
+  background: #e8f2fc;
+}
+
+.slots-container {
+  position: relative;
+  height: 900px; /* 60スロット × 15px */
+  flex: 1;
+  user-select: none;
+}
+
+.time-slot {
+  height: 15px;
+  border-bottom: 1px dotted #f0f0f0;
+  cursor: crosshair;
+}
+
+/* 1時間ごとに実線 */
+.time-slot:nth-child(4n) {
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.entry-block {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 3px;
+  padding: 2px 4px;
+  overflow: hidden;
+  cursor: pointer;
+  z-index: 1;
+  min-height: 15px;
+}
+
+.entry-block:hover {
+  filter: brightness(0.9);
+}
+
+.entry-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+}
+
+.entry-time {
+  font-size: 10px;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+}
+
+.drag-preview {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  background: rgba(74, 144, 217, 0.25);
+  border: 2px dashed #4a90d9;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---- 画面3: 月別統計 ---- */
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.month-label {
+  font-weight: 600;
+  font-size: 15px;
+  min-width: 120px;
+  text-align: center;
+}
+
+.stats-body {
+  display: flex;
+  gap: 24px;
+  padding: 20px;
+  align-items: flex-start;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.chart-container {
+  flex-shrink: 0;
+  width: 280px;
+}
+
+#stats-table {
+  border-collapse: collapse;
+  min-width: 360px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+#stats-table th {
+  background: #f5f6fa;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+#stats-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+
+#stats-table tr:last-child td {
+  border-bottom: none;
+}
+
+.color-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+/* ---- モーダル ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px 28px;
+  min-width: 320px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.modal-content h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #222;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.error-text {
+  color: #e05555;
+  font-size: 12px;
+  background: #fff0f0;
+  border: 1px solid #f5b5b5;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+}

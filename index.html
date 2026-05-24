@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タスク時間管理</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- 起動オーバーレイ -->
+  <div id="startup-overlay">
+    <div class="startup-card">
+      <h1>タスク時間管理</h1>
+      <p>案件ごとの作業時間を記録し、月別の割合を可視化します。</p>
+      <div class="startup-instructions">
+        <p>⚠️ 事前に以下の内容で JSON ファイルを2つ作成してください：</p>
+        <ul>
+          <li><code>presets.json</code> → <code>{ "presets": [] }</code></li>
+          <li><code>records.json</code> → <code>{ "records": [] }</code></li>
+        </ul>
+      </div>
+      <button id="btn-start" class="btn-primary btn-lg">📂 開始する</button>
+      <p id="startup-status" class="startup-status"></p>
+    </div>
+  </div>
+
+  <!-- メインアプリ（起動後に表示） -->
+  <div id="app" class="hidden">
+
+    <!-- タブナビゲーション -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="presets">📋 案件管理</button>
+      <button class="tab-btn" data-tab="calendar">📅 時間入力</button>
+      <button class="tab-btn" data-tab="stats">📊 月別割合</button>
+    </nav>
+
+    <!-- 画面1: 案件プリセット管理 -->
+    <section id="tab-presets" class="tab-panel">
+      <div class="panel-header">
+        <h2>案件プリセット管理</h2>
+        <button id="btn-add-preset" class="btn-primary">＋ 案件追加</button>
+      </div>
+      <ul id="preset-list"></ul>
+      <p id="preset-empty" class="empty-message hidden">案件がありません。「案件追加」から登録してください。</p>
+    </section>
+
+    <!-- 画面2: 週カレンダー -->
+    <section id="tab-calendar" class="tab-panel hidden">
+      <div class="calendar-header">
+        <button id="btn-prev-week" class="btn-nav">‹ 前の週</button>
+        <span id="week-label" class="week-label"></span>
+        <button id="btn-next-week" class="btn-nav">翌の週 ›</button>
+      </div>
+      <div id="calendar-wrapper">
+        <div id="time-axis"></div>
+        <div id="calendar-grid"></div>
+      </div>
+    </section>
+
+    <!-- 画面3: 月別割合 -->
+    <section id="tab-stats" class="tab-panel hidden">
+      <div class="stats-header">
+        <button id="btn-prev-month" class="btn-nav">‹ 前月</button>
+        <span id="month-label" class="month-label"></span>
+        <button id="btn-next-month" class="btn-nav">翌月 ›</button>
+      </div>
+      <div class="stats-body">
+        <div class="chart-container">
+          <canvas id="pie-chart" width="280" height="280"></canvas>
+        </div>
+        <table id="stats-table">
+          <thead>
+            <tr>
+              <th>案件名</th>
+              <th>合計時間</th>
+              <th>割合</th>
+            </tr>
+          </thead>
+          <tbody id="stats-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </div><!-- /#app -->
+
+  <!-- モーダル: 時間入力・編集 -->
+  <div id="modal-entry" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3 id="modal-title">時間を記録</h3>
+      <div class="form-group">
+        <label for="modal-preset-select">案件</label>
+        <select id="modal-preset-select"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="modal-start">開始時刻</label>
+          <input type="time" id="modal-start" step="900" min="07:00" max="22:00">
+        </div>
+        <div class="form-group">
+          <label for="modal-end">終了時刻</label>
+          <input type="time" id="modal-end" step="900" min="07:00" max="22:00">
+        </div>
+      </div>
+      <p id="modal-error" class="error-text hidden"></p>
+      <div class="modal-buttons">
+        <button id="modal-btn-save" class="btn-primary">保存</button>
+        <button id="modal-btn-delete" class="btn-danger hidden">削除</button>
+        <button id="modal-btn-cancel" class="btn-secondary">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: 案件名入力（追加・リネーム共用） -->
+  <div id="modal-name" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3 id="modal-name-title">案件名を入力</h3>
+      <div class="form-group">
+        <label for="modal-name-input">案件名</label>
+        <input type="text" id="modal-name-input" placeholder="例: 案件A">
+      </div>
+      <p id="modal-name-error" class="error-text hidden"></p>
+      <div class="modal-buttons">
+        <button id="modal-name-btn-save" class="btn-primary">保存</button>
+        <button id="modal-name-btn-cancel" class="btn-secondary">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./node_modules/chart.js/dist/chart.umd.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

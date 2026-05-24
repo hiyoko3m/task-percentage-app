@@ -1,0 +1,9 @@
+{
+  "name": "task-percentage-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "タスク時間割合管理アプリ",
+  "dependencies": {
+    "chart.js": "^4"
+  }
+}
