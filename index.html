@@ -8,25 +8,8 @@
 </head>
 <body>
 
-  <!-- 起動オーバーレイ -->
-  <div id="startup-overlay">
-    <div class="startup-card">
-      <h1>タスク時間管理</h1>
-      <p>案件ごとの作業時間を記録し、月別の割合を可視化します。</p>
-      <div class="startup-instructions">
-        <p>⚠️ 事前に以下の内容で JSON ファイルを2つ作成してください：</p>
-        <ul>
-          <li><code>presets.json</code> → <code>{ "presets": [] }</code></li>
-          <li><code>records.json</code> → <code>{ "records": [] }</code></li>
-        </ul>
-      </div>
-      <button id="btn-start" class="btn-primary btn-lg">📂 開始する</button>
-      <p id="startup-status" class="startup-status"></p>
-    </div>
-  </div>
-
-  <!-- メインアプリ（起動後に表示） -->
-  <div id="app" class="hidden">
+  <!-- メインアプリ -->
+  <div id="app">
 
     <!-- タブナビゲーション -->
     <nav class="tab-nav">

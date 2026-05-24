@@ -9,9 +9,11 @@ const TOTAL_SLOTS         = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * 4; // 60
 const SLOT_HEIGHT_PX      = 15;
 const DAY_NAMES           = ['月', '火', '水', '木', '金', '土', '日'];
 
+// ---- localStorage キー ----
+const LS_PRESETS = 'task-app-presets';
+const LS_RECORDS = 'task-app-records';
+
 // ---- 状態管理 ----
-let presetsFileHandle = null;
-let recordsFileHandle = null;
 let state = {
   presets: [], // [{ id, name, enabled }]
   records: [], // [{ id, presetId, date, startTime, endTime }]
@@ -128,63 +130,25 @@ function createDiv(className) {
   return d;
 }
 
-// ---- ファイル操作 ----
-async function handleStart() {
-  const status = el('startup-status');
-  const btn    = el('btn-start');
-  btn.disabled = true;
-
+// ---- localStorage 操作 ----
+function loadData() {
   try {
-    status.textContent = '📂 presets.json を選択してください...';
-    const [ph] = await window.showOpenFilePicker({
-      types: [{ description: 'JSON ファイル', accept: { 'application/json': ['.json'] } }],
-      multiple: false,
-    });
-    presetsFileHandle = ph;
-
-    status.textContent = '📂 records.json を選択してください...';
-    const [rh] = await window.showOpenFilePicker({
-      types: [{ description: 'JSON ファイル', accept: { 'application/json': ['.json'] } }],
-      multiple: false,
-    });
-    recordsFileHandle = rh;
-
-    status.textContent = '読み込み中...';
-    await loadData();
-    showApp();
-  } catch (err) {
-    btn.disabled = false;
-    if (err.name === 'AbortError') {
-      status.textContent = '';
-    } else {
-      status.textContent = 'エラー: ' + err.message;
-    }
-  }
+    state.presets = JSON.parse(localStorage.getItem(LS_PRESETS) || '[]');
+  } catch { state.presets = []; }
+  try {
+    state.records = JSON.parse(localStorage.getItem(LS_RECORDS) || '[]');
+  } catch { state.records = []; }
 }
 
-async function loadData() {
-  const pf = await presetsFileHandle.getFile();
-  state.presets = (JSON.parse(await pf.text())).presets ?? [];
-
-  const rf = await recordsFileHandle.getFile();
-  state.records = (JSON.parse(await rf.text())).records ?? [];
+function savePresets() {
+  localStorage.setItem(LS_PRESETS, JSON.stringify(state.presets));
 }
 
-async function savePresets() {
-  const writable = await presetsFileHandle.createWritable();
-  await writable.write(JSON.stringify({ presets: state.presets }, null, 2));
-  await writable.close();
-}
-
-async function saveRecords() {
-  const writable = await recordsFileHandle.createWritable();
-  await writable.write(JSON.stringify({ records: state.records }, null, 2));
-  await writable.close();
+function saveRecords() {
+  localStorage.setItem(LS_RECORDS, JSON.stringify(state.records));
 }
 
 function showApp() {
-  el('startup-overlay').style.display = 'none';
-  el('app').classList.remove('hidden');
   currentWeekStart = getWeekStart(new Date());
   renderPresets();
   renderCalendar();
@@ -237,10 +201,10 @@ function openAddPresetModal() {
   el('modal-name-title').textContent = '案件を追加';
   el('modal-name-input').value = '';
   hideModalNameError();
-  el('modal-name-btn-save').onclick = async () => {
+  el('modal-name-btn-save').onclick = () => {
     const name = el('modal-name-input').value.trim();
     if (!name) { showModalNameError('案件名を入力してください。'); return; }
-    await addPreset(name);
+    addPreset(name);
     closeModal('modal-name');
   };
   showModal('modal-name');
@@ -251,10 +215,10 @@ function openRenameModal(id, currentName) {
   el('modal-name-title').textContent = '案件名を変更';
   el('modal-name-input').value = currentName;
   hideModalNameError();
-  el('modal-name-btn-save').onclick = async () => {
+  el('modal-name-btn-save').onclick = () => {
     const name = el('modal-name-input').value.trim();
     if (!name) { showModalNameError('案件名を入力してください。'); return; }
-    await renamePreset(id, name);
+    renamePreset(id, name);
     closeModal('modal-name');
   };
   showModal('modal-name');
@@ -262,25 +226,25 @@ function openRenameModal(id, currentName) {
   el('modal-name-input').select();
 }
 
-async function addPreset(name) {
+function addPreset(name) {
   state.presets.push({ id: generateUUID(), name, enabled: true });
-  await savePresets();
+  savePresets();
   renderPresets();
 }
 
-async function renamePreset(id, name) {
+function renamePreset(id, name) {
   const preset = state.presets.find(p => p.id === id);
   if (!preset) return;
   preset.name = name;
-  await savePresets();
+  savePresets();
   renderPresets();
 }
 
-async function togglePreset(id) {
+function togglePreset(id) {
   const preset = state.presets.find(p => p.id === id);
   if (!preset) return;
   preset.enabled = !preset.enabled;
-  await savePresets();
+  savePresets();
   renderPresets();
 }
 
@@ -536,7 +500,7 @@ function validateEntryModal() {
   return null; // OK
 }
 
-async function saveEntry() {
+function saveEntry() {
   const error = validateEntryModal();
   if (error) { showModalError(error); return; }
 
@@ -561,15 +525,15 @@ async function saveEntry() {
     }
   }
 
-  await saveRecords();
+  saveRecords();
   closeModal('modal-entry');
   renderCalendar();
 }
 
-async function deleteEntry() {
+function deleteEntry() {
   if (!confirm('この記録を削除しますか？')) return;
   state.records = state.records.filter(r => r.id !== modalContext.editRecordId);
-  await saveRecords();
+  saveRecords();
   closeModal('modal-entry');
   renderCalendar();
 }
@@ -689,8 +653,9 @@ document.addEventListener('DOMContentLoaded', () => {
   currentWeekStart = getWeekStart(new Date());
   statsDate        = new Date();
 
-  // 起動
-  el('btn-start').addEventListener('click', handleStart);
+  // localStorage からデータを読み込んで即座に表示
+  loadData();
+  showApp();
 
   // カレンダー週移動
   el('btn-prev-week').addEventListener('click', () => {
