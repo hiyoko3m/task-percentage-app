@@ -16,7 +16,8 @@
 
 ### パッケージ管理
 - npm パッケージを使用する場合は pnpm を使うこと
-- Renovate 設定で minimumReleaseAge を 7日 に設定すること
+- pnpm のネイティブ設定 `minimumReleaseAge` を 7日 に設定すること
+  （参照: https://pnpm.io/settings#minimumreleaseage）
 
 ### データ保存
 - File System Access API を使用してローカル JSON ファイルに直接読み書き
