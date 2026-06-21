@@ -263,7 +263,7 @@ select:focus, input:focus {
 
 .slots-container {
   position: relative;
-  height: 900px; /* 60スロット × 15px */
+  height: 840px; /* 56スロット × 15px */
   flex: 1;
   user-select: none;
 }

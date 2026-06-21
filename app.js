@@ -3,9 +3,9 @@
    ========================================================= */
 
 // ---- 定数 ----
-const CALENDAR_START_HOUR = 7;
-const CALENDAR_END_HOUR   = 22;
-const TOTAL_SLOTS         = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * 4; // 60
+const CALENDAR_START_HOUR = 9;
+const CALENDAR_END_HOUR   = 23;
+const TOTAL_SLOTS         = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * 4; // 56
 const SLOT_HEIGHT_PX      = 15;
 const DAY_NAMES           = ['月', '火', '水', '木', '金'];
 
