@@ -3,11 +3,11 @@
    ========================================================= */
 
 // ---- 定数 ----
-const CALENDAR_START_HOUR = 7;
-const CALENDAR_END_HOUR   = 22;
-const TOTAL_SLOTS         = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * 4; // 60
+const CALENDAR_START_HOUR = 9;
+const CALENDAR_END_HOUR   = 23;
+const TOTAL_SLOTS         = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * 4; // 56
 const SLOT_HEIGHT_PX      = 15;
-const DAY_NAMES           = ['月', '火', '水', '木', '金', '土', '日'];
+const DAY_NAMES           = ['月', '火', '水', '木', '金'];
 
 // ---- localStorage キー ----
 const LS_PRESETS = 'task-app-presets';
@@ -257,7 +257,7 @@ function renderCalendar() {
 
 function renderWeekLabel() {
   const end = new Date(currentWeekStart);
-  end.setDate(end.getDate() + 6);
+  end.setDate(end.getDate() + 4);
   el('week-label').textContent = `${formatDate(currentWeekStart)} 〜 ${formatDate(end)}`;
 }
 
@@ -280,7 +280,7 @@ function renderCalendarGrid() {
   const today = formatDate(new Date());
   grid.innerHTML = '';
 
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 5; i++) {
     const dayDate = new Date(currentWeekStart);
     dayDate.setDate(dayDate.getDate() + i);
     const dateStr = formatDate(dayDate);
@@ -342,13 +342,100 @@ function renderEntryBlocks(slotsContainer, dateStr) {
     }
     block.insertBefore(nameEl, block.firstChild);
 
-    block.addEventListener('click', e => {
-      e.stopPropagation();
-      openEditModal(record.id);
+    const handleTop    = createDiv('entry-resize-handle entry-resize-handle-top');
+    const handleBottom = createDiv('entry-resize-handle entry-resize-handle-bottom');
+    block.append(handleTop, handleBottom);
+
+    block.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (e.target === handleTop) {
+        startEntryDrag(e, 'resize-top', record, slotsContainer, block);
+      } else if (e.target === handleBottom) {
+        startEntryDrag(e, 'resize-bottom', record, slotsContainer, block);
+      } else {
+        startEntryDrag(e, 'move', record, slotsContainer, block);
+      }
     });
 
     slotsContainer.appendChild(block);
   }
+}
+
+// ---- 既存エントリのドラッグ操作（移動・リサイズ） ----
+function startEntryDrag(e, mode, record, slotsContainer, blockEl) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  dragState = {
+    active: true,
+    mode,
+    columnDate: record.date,
+    slotsContainer,
+    recordId: record.id,
+    origStartSlot: timeToSlot(record.startTime),
+    origEndSlot: timeToSlot(record.endTime),
+    pointerStartSlot: clientYToSlot(slotsContainer, e.clientY),
+    startSlot: -1,
+    endSlot: -1,
+    moved: false,
+    blockEl,
+  };
+
+  document.addEventListener('mousemove', onEntryDragMove);
+  document.addEventListener('mouseup', onEntryDragEnd, { once: true });
+}
+
+function onEntryDragMove(e) {
+  if (!dragState.active) return;
+  const currentSlot = clientYToSlot(dragState.slotsContainer, e.clientY);
+  const delta = currentSlot - dragState.pointerStartSlot;
+  if (delta !== 0) dragState.moved = true;
+
+  let newStartSlot = dragState.origStartSlot;
+  let newEndSlot   = dragState.origEndSlot;
+
+  if (dragState.mode === 'move') {
+    const duration = dragState.origEndSlot - dragState.origStartSlot;
+    newStartSlot = dragState.origStartSlot + delta;
+    newEndSlot   = newStartSlot + duration;
+    if (newStartSlot < 0) { newStartSlot = 0; newEndSlot = duration; }
+    if (newEndSlot > TOTAL_SLOTS) { newEndSlot = TOTAL_SLOTS; newStartSlot = TOTAL_SLOTS - duration; }
+  } else if (dragState.mode === 'resize-top') {
+    newStartSlot = Math.max(0, Math.min(dragState.origStartSlot + delta, dragState.origEndSlot - 1));
+  } else if (dragState.mode === 'resize-bottom') {
+    newEndSlot = Math.min(TOTAL_SLOTS, Math.max(dragState.origEndSlot + delta, dragState.origStartSlot + 1));
+  }
+
+  dragState.startSlot = newStartSlot;
+  dragState.endSlot   = newEndSlot;
+
+  dragState.blockEl.style.top    = `${newStartSlot * SLOT_HEIGHT_PX}px`;
+  dragState.blockEl.style.height = `${(newEndSlot - newStartSlot) * SLOT_HEIGHT_PX}px`;
+}
+
+function onEntryDragEnd() {
+  document.removeEventListener('mousemove', onEntryDragMove);
+  if (!dragState.active) return;
+  dragState.active = false;
+
+  const { recordId, columnDate, moved, slotsContainer } = dragState;
+
+  if (!moved) {
+    openEditModal(recordId);
+    return;
+  }
+
+  const record = state.records.find(r => r.id === recordId);
+  const newStartTime = slotToTime(dragState.startSlot);
+  const newEndTime   = slotToTime(dragState.endSlot);
+
+  if (record && !hasOverlap(columnDate, newStartTime, newEndTime, recordId)) {
+    record.startTime = newStartTime;
+    record.endTime   = newEndTime;
+    saveRecords();
+  }
+
+  renderEntryBlocks(slotsContainer, columnDate);
 }
 
 // ---- ドラッグ操作 ----
@@ -538,6 +625,59 @@ function deleteEntry() {
   renderCalendar();
 }
 
+// ---- データのエクスポート / インポート ----
+function exportData() {
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    presets: state.presets,
+    records: state.records,
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `task-data-${formatDate(new Date())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function handleImportFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try {
+      data = JSON.parse(reader.result);
+    } catch {
+      alert('JSONの読み込みに失敗しました。ファイルが壊れている可能性があります。');
+      return;
+    }
+    if (!data || !Array.isArray(data.presets) || !Array.isArray(data.records)) {
+      alert('データ形式が正しくありません。presets と records の配列を含むファイルを選択してください。');
+      return;
+    }
+    const ok = confirm(
+      `インポートすると現在のデータ（案件 ${state.presets.length}件 / 記録 ${state.records.length}件）は\n` +
+      `読み込んだデータ（案件 ${data.presets.length}件 / 記録 ${data.records.length}件）で完全に置き換えられます。\n\n` +
+      `続行しますか？`
+    );
+    if (!ok) return;
+
+    state.presets = data.presets;
+    state.records = data.records;
+    savePresets();
+    saveRecords();
+    renderPresets();
+    renderCalendar();
+    alert('インポートが完了しました。');
+  };
+  reader.onerror = () => alert('ファイルの読み込みに失敗しました。');
+  reader.readAsText(file);
+}
+
 // ---- 画面3: 月別統計 ----
 function renderStats() {
   const year  = statsDate.getFullYear();
@@ -679,6 +819,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // プリセット管理
   el('btn-add-preset').addEventListener('click', openAddPresetModal);
+
+  // データのエクスポート / インポート
+  el('btn-export').addEventListener('click', exportData);
+  el('btn-import').addEventListener('click', () => el('import-file-input').click());
+  el('import-file-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) handleImportFile(file);
+    e.target.value = ''; // 同じファイルを再選択できるようにリセット
+  });
 
   // 時間記録モーダル
   el('modal-btn-save').addEventListener('click', saveEntry);
