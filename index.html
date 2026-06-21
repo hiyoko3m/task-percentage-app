@@ -22,7 +22,12 @@
     <section id="tab-presets" class="tab-panel">
       <div class="panel-header">
         <h2>案件プリセット管理</h2>
-        <button id="btn-add-preset" class="btn-primary">＋ 案件追加</button>
+        <div class="header-actions">
+          <button id="btn-export" class="btn-secondary">エクスポート</button>
+          <button id="btn-import" class="btn-secondary">インポート</button>
+          <button id="btn-add-preset" class="btn-primary">＋ 案件追加</button>
+          <input type="file" id="import-file-input" accept="application/json,.json" class="hidden">
+        </div>
       </div>
       <ul id="preset-list"></ul>
       <p id="preset-empty" class="empty-message hidden">案件がありません。「案件追加」から登録してください。</p>

@@ -625,6 +625,59 @@ function deleteEntry() {
   renderCalendar();
 }
 
+// ---- データのエクスポート / インポート ----
+function exportData() {
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    presets: state.presets,
+    records: state.records,
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `task-data-${formatDate(new Date())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function handleImportFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try {
+      data = JSON.parse(reader.result);
+    } catch {
+      alert('JSONの読み込みに失敗しました。ファイルが壊れている可能性があります。');
+      return;
+    }
+    if (!data || !Array.isArray(data.presets) || !Array.isArray(data.records)) {
+      alert('データ形式が正しくありません。presets と records の配列を含むファイルを選択してください。');
+      return;
+    }
+    const ok = confirm(
+      `インポートすると現在のデータ（案件 ${state.presets.length}件 / 記録 ${state.records.length}件）は\n` +
+      `読み込んだデータ（案件 ${data.presets.length}件 / 記録 ${data.records.length}件）で完全に置き換えられます。\n\n` +
+      `続行しますか？`
+    );
+    if (!ok) return;
+
+    state.presets = data.presets;
+    state.records = data.records;
+    savePresets();
+    saveRecords();
+    renderPresets();
+    renderCalendar();
+    alert('インポートが完了しました。');
+  };
+  reader.onerror = () => alert('ファイルの読み込みに失敗しました。');
+  reader.readAsText(file);
+}
+
 // ---- 画面3: 月別統計 ----
 function renderStats() {
   const year  = statsDate.getFullYear();
@@ -766,6 +819,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // プリセット管理
   el('btn-add-preset').addEventListener('click', openAddPresetModal);
+
+  // データのエクスポート / インポート
+  el('btn-export').addEventListener('click', exportData);
+  el('btn-import').addEventListener('click', () => el('import-file-input').click());
+  el('import-file-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) handleImportFile(file);
+    e.target.value = ''; // 同じファイルを再選択できるようにリセット
+  });
 
   // 時間記録モーダル
   el('modal-btn-save').addEventListener('click', saveEntry);

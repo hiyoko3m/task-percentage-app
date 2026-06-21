@@ -102,6 +102,12 @@ select:focus, input:focus {
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 #preset-list {
   list-style: none;
   padding: 12px 20px;
