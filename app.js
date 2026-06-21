@@ -7,7 +7,7 @@ const CALENDAR_START_HOUR = 7;
 const CALENDAR_END_HOUR   = 22;
 const TOTAL_SLOTS         = (CALENDAR_END_HOUR - CALENDAR_START_HOUR) * 4; // 60
 const SLOT_HEIGHT_PX      = 15;
-const DAY_NAMES           = ['月', '火', '水', '木', '金', '土', '日'];
+const DAY_NAMES           = ['月', '火', '水', '木', '金'];
 
 // ---- localStorage キー ----
 const LS_PRESETS = 'task-app-presets';
@@ -257,7 +257,7 @@ function renderCalendar() {
 
 function renderWeekLabel() {
   const end = new Date(currentWeekStart);
-  end.setDate(end.getDate() + 6);
+  end.setDate(end.getDate() + 4);
   el('week-label').textContent = `${formatDate(currentWeekStart)} 〜 ${formatDate(end)}`;
 }
 
@@ -280,7 +280,7 @@ function renderCalendarGrid() {
   const today = formatDate(new Date());
   grid.innerHTML = '';
 
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 5; i++) {
     const dayDate = new Date(currentWeekStart);
     dayDate.setDate(dayDate.getDate() + i);
     const dateStr = formatDate(dayDate);
@@ -342,13 +342,100 @@ function renderEntryBlocks(slotsContainer, dateStr) {
     }
     block.insertBefore(nameEl, block.firstChild);
 
-    block.addEventListener('click', e => {
-      e.stopPropagation();
-      openEditModal(record.id);
+    const handleTop    = createDiv('entry-resize-handle entry-resize-handle-top');
+    const handleBottom = createDiv('entry-resize-handle entry-resize-handle-bottom');
+    block.append(handleTop, handleBottom);
+
+    block.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (e.target === handleTop) {
+        startEntryDrag(e, 'resize-top', record, slotsContainer, block);
+      } else if (e.target === handleBottom) {
+        startEntryDrag(e, 'resize-bottom', record, slotsContainer, block);
+      } else {
+        startEntryDrag(e, 'move', record, slotsContainer, block);
+      }
     });
 
     slotsContainer.appendChild(block);
   }
+}
+
+// ---- 既存エントリのドラッグ操作（移動・リサイズ） ----
+function startEntryDrag(e, mode, record, slotsContainer, blockEl) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  dragState = {
+    active: true,
+    mode,
+    columnDate: record.date,
+    slotsContainer,
+    recordId: record.id,
+    origStartSlot: timeToSlot(record.startTime),
+    origEndSlot: timeToSlot(record.endTime),
+    pointerStartSlot: clientYToSlot(slotsContainer, e.clientY),
+    startSlot: -1,
+    endSlot: -1,
+    moved: false,
+    blockEl,
+  };
+
+  document.addEventListener('mousemove', onEntryDragMove);
+  document.addEventListener('mouseup', onEntryDragEnd, { once: true });
+}
+
+function onEntryDragMove(e) {
+  if (!dragState.active) return;
+  const currentSlot = clientYToSlot(dragState.slotsContainer, e.clientY);
+  const delta = currentSlot - dragState.pointerStartSlot;
+  if (delta !== 0) dragState.moved = true;
+
+  let newStartSlot = dragState.origStartSlot;
+  let newEndSlot   = dragState.origEndSlot;
+
+  if (dragState.mode === 'move') {
+    const duration = dragState.origEndSlot - dragState.origStartSlot;
+    newStartSlot = dragState.origStartSlot + delta;
+    newEndSlot   = newStartSlot + duration;
+    if (newStartSlot < 0) { newStartSlot = 0; newEndSlot = duration; }
+    if (newEndSlot > TOTAL_SLOTS) { newEndSlot = TOTAL_SLOTS; newStartSlot = TOTAL_SLOTS - duration; }
+  } else if (dragState.mode === 'resize-top') {
+    newStartSlot = Math.max(0, Math.min(dragState.origStartSlot + delta, dragState.origEndSlot - 1));
+  } else if (dragState.mode === 'resize-bottom') {
+    newEndSlot = Math.min(TOTAL_SLOTS, Math.max(dragState.origEndSlot + delta, dragState.origStartSlot + 1));
+  }
+
+  dragState.startSlot = newStartSlot;
+  dragState.endSlot   = newEndSlot;
+
+  dragState.blockEl.style.top    = `${newStartSlot * SLOT_HEIGHT_PX}px`;
+  dragState.blockEl.style.height = `${(newEndSlot - newStartSlot) * SLOT_HEIGHT_PX}px`;
+}
+
+function onEntryDragEnd() {
+  document.removeEventListener('mousemove', onEntryDragMove);
+  if (!dragState.active) return;
+  dragState.active = false;
+
+  const { recordId, columnDate, moved, slotsContainer } = dragState;
+
+  if (!moved) {
+    openEditModal(recordId);
+    return;
+  }
+
+  const record = state.records.find(r => r.id === recordId);
+  const newStartTime = slotToTime(dragState.startSlot);
+  const newEndTime   = slotToTime(dragState.endSlot);
+
+  if (record && !hasOverlap(columnDate, newStartTime, newEndTime, recordId)) {
+    record.startTime = newStartTime;
+    record.endTime   = newEndTime;
+    saveRecords();
+  }
+
+  renderEntryBlocks(slotsContainer, columnDate);
 }
 
 // ---- ドラッグ操作 ----

@@ -219,7 +219,7 @@ select:focus, input:focus {
 
 #calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   flex: 1;
   min-width: 0;
 }
@@ -280,7 +280,7 @@ select:focus, input:focus {
   border-radius: 3px;
   padding: 2px 4px;
   overflow: hidden;
-  cursor: pointer;
+  cursor: move;
   z-index: 1;
   min-height: 15px;
 }
@@ -288,6 +288,18 @@ select:focus, input:focus {
 .entry-block:hover {
   filter: brightness(0.9);
 }
+
+.entry-resize-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+  z-index: 2;
+}
+
+.entry-resize-handle-top    { top: 0; }
+.entry-resize-handle-bottom { bottom: 0; }
 
 .entry-name {
   font-size: 11px;
